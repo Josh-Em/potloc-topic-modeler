@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+        integrity="sha384-KyZXEAg3QhqLMpG8r+Knujsl5/1Aoo9rF6z8logen8TJWs5GetPositionObserver0GXmdiDP\
+t8q+kw" crossorigin="anonymous">
+    <title>LDA Topic Modeling Flask App</title>
+    <style>
+        .hidden {
+            display: none;
+        }
+
+        .step {
+            margin-bottom: 30px;
+        }
+
+        .container {
+            margin: 100px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Welcome to the LDA Topic Modeling Flask App 📚</h1>
+        <p>
+            This application uses the Latent Dirichlet Allocation (LDA) technique to discover hidden topics in a
+            collection of texts. By following the steps below, you can train an LDA model, name the topics, and predict
+            the topic of new text inputs.
+            <br>
+            <br>
+            <strong>Expected file format:</strong> Please upload a CSV file with the following columns: question_title,
+            question_content, and best_answer. The delimiter should be a semicolon (;).
+        </p>
+
+        <!-- Step 1: Choose File -->
+        <div class="step">
+            <h2>Step 1: Choose File 📁</h2>
+            <p>Click the button below to choose a CSV file to process.</p>
+            <form id="upload-form" enctype="multipart/form-data">
+                <input type="file" id="csv-file" name="csv_file" accept=".csv">
+                <button type="submit">Process File <i id="process-file-spinner"
+                        class="fas fa-spinner fa-spin hidden"></i></button>
+            </form>
+            <div id="processed-data" class="hidden"></div>
+        </div>
+
+        <!-- Step 2: Process -->
+        <div class="step">
+            <h2>Step 2: Train Model 🎓</h2>
+            <p>Once you have uploaded and processed your file, click the button below to train the LDA model.</p>
+            <button id="train-model">Train Model <i id="train-model-spinner"
+                    class="fas fa-spinner fa-spin hidden"></i></button>
+            <div id="topics-container" class="hidden">
+                <h2>Extracted Topics 🔍</h2>
+                <p>After training the model, the extracted topics will be displayed below.</p>
+                <ul id="topics-list"></ul>
+            </div>
+        </div>
+
+        <!-- Step 3: Train -->
+        <div class="step">
+            <h2>Step 3: Name Topics 🏷️</h2>
+            <p>Click the button below to use GPT-3.5 to generate a name for each extracted topic. Enter your API key in the app.py file.</p>
+            <button id="name-topics" class="hidden">Name Topics <i id="name-topics-spinner"
+                    class="fas fa-spinner fa-spin hidden"></i></button>
+        </div>
+
+        <!-- Step 4: Name -->
+        <div class="step">
+            <h2>Step 4: Predict Topic 💡</h2>
+            <p>Enter a text input in the box below, and click the button to predict its topic!</p>
+            <form id="predict-form" class="hidden">
+                <label for="user-text">Enter your text:</label>
+                <textarea id="user-text" name="user_text" rows="4" cols="50"></textarea>
+                <button type="submit">Predict Topic <i id="predict-topic-spinner"
+                        class="fas fa-spinner fa-spin hidden"></i></button>
+            </form>
+            <div id="prediction-result" class="hidden"></div>
+        </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $("#upload-form").submit(function (event) {
+            $("#process-file-spinner").removeClass("hidden"); // Show the spinner
+            event.preventDefault();
+            var form_data = new FormData($('#upload-form')[0]);
+            $.ajax({
+                url: '/process_data',
+                method: 'POST',
+                data: form_data,
+                contentType: false,
+                processData: false,
+                success: function (data) {
+                    $("#process-file-spinner").addClass("hidden"); // Hide the spinner
+                    $("#processed-data").html(data).removeClass("hidden");
+                }
+            });
+        });
+
+        // Train the model on the backend and display a message when complete
+        var ldaTopicsData;  // Store the LDA topics data here
+
+        $("#train-model").on("click", function () {
+            $("#train-model-spinner").removeClass("hidden"); // Show the spinner
+            $.ajax({
+                url: '/train_model',
+                method: 'POST',
+                contentType: "application/json",
+                dataType: "json",
+                success: function (response) {
+                    $("#train-model-spinner").addClass("hidden"); // Hide the spinner
+                    $("#topics-container").removeClass("hidden");
+                    var topicsList = $("#topics-list");
+                    topicsList.html("");  // Clear any old topics
+
+                    ldaTopicsData = response.topics.map(topic => topic.words.split(" "));
+                    ldaTopicsData.forEach((topicWords, index) => {
+                        topicsList.append(`<li>Topic ${index + 1}: Words: ${topicWords.join(" ")}</li>`);
+                    });
+
+                    // Show the "Name Topics" button
+                    $("#name-topics").removeClass("hidden");
+                    // Show the "Predict Topic" form
+                    $("#predict-form").removeClass("hidden");
+                },
+
+
+                error: function (jqXHR, textStatus, errorThrown) {
+                    $("#train-model-spinner").addClass("hidden"); // Hide the spinner
+                    alert(jqXHR.responseText);
+                }
+            });
+        });
+
+        $("#name-topics").on("click", function () {
+            $("#name-topics-spinner").removeClass("hidden"); // Show the spinner
+            if (ldaTopicsData) {
+                // Send AJAX request to name the topics
+                $.ajax({
+                    url: "/name_topics",
+                    method: "POST",
+                    data: JSON.stringify({ topics: ldaTopicsData }),
+                    contentType: "application/json",
+                    dataType: "json",
+                    success: function (namedTopics) {
+                        $("#name-topics-spinner").addClass("hidden"); // Hide the spinner
+                        var topicsList = $("#topics-list");
+                        topicsList.html("");  // Clear any old topics
+
+                        for (let key in namedTopics) {
+                            var topic = namedTopics[key];
+                            topicsList.append(`<li>Topic ${key}: ${topic.title}, Words: ${topic.words.join(" ")}</li>`);
+                        }
+
+                        ldaTopicsData = namedTopics;
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        $("#name-topics-spinner").addClass("hidden"); // Hide the spinner
+                        alert(jqXHR.responseText);
+                    }
+                });
+            }
+        });
+    
+        $("#predict-form").submit(function (event) {
+             $("#predict-topic-spinner").removeClass("hidden"); // Show the spinner
+            event.preventDefault();
+            var userText = $("#user-text").val();
+            $.ajax({
+                url: '/predict_topic',
+                method: 'POST',
+                data: JSON.stringify({ text: userText }),
+                contentType: "application/json",
+                dataType: "json",
+                success: function (response) {
+                    $("#predict-topic-spinner").addClass("hidden"); // Hide the spinner
+                    $("#prediction-result").html(`Predicted Topic: ${response.topic}<br>Title: ${response.title}<br>Words: ${response.words.join(" ")}`).removeClass("hidden");
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    $("#predict-topic-spinner").addClass("hidden"); // Hide the spinner
+                    alert(jqXHR.responseText);
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>
