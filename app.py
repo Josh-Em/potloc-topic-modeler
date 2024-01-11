@@ -13,7 +13,7 @@ import logging
 from openai import OpenAI
 
 # Set the OpenAI API key
-api_key = "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"
+api_key = "you_api_key_here"
 client = OpenAI(api_key=api_key)
 
 nltk.download('wordnet')
