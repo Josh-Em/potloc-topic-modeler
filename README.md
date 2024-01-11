@@ -19,7 +19,7 @@ To run the app locally, follow these steps:
 1. Clone this repository:
 
 ```bash
-git clone https://github.com/Josh-Em/potloc-topic-modeler.git
+git clone -b master https://github.com/Josh-Em/potloc-topic-modeler.git
 cd potloc-topic-modeler
 ```
 
