@@ -4,7 +4,7 @@ This repository contains a Flask app that automates the process of _**topic mode
 
 The main objective is to help the Project Support team automate one of their time-consuming manual tasks of classifying open-ended answers among candidate topics.
 
-![model2](https://github.com/Josh-Em/potloc-topic-modeler/assets/98699929/4b328121-39db-4591-90dc-b5c9d5744872)
+![lda](https://github.com/Josh-Em/potloc-topic-modeler/assets/98699929/e0574c61-b521-4ca6-ac54-973f092b99ae)
 
 ## Features
 
